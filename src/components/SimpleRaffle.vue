@@ -139,7 +139,7 @@
                 density="compact"
                 :rules="[validateEntryCount]"
                 :persistent-hint="true"
-                :hint="(state.entryRanges.length > index) ? state.entryRanges[index]: ''"
+                :hint="(entryRanges.length > index) ? entryRanges[index]: ''"
               />
               <v-btn
                 icon="mdi-plus"
@@ -165,7 +165,7 @@
 
 <script setup lang="ts">
 
-import {reactive, watch} from "vue";
+import {computed, reactive, watch} from "vue";
 
 interface RaffleEntry {
   name: string
@@ -182,7 +182,6 @@ const state = reactive({
   entries: savedEntries,
   deleteDialog: false,
   newName: '',
-  entryRanges: [] as string[],
 })
 
 const addEntry = () => {
@@ -207,7 +206,7 @@ const pickWinner = () => {
   console.info(`Picking from: ${pickList}`)
 
   const winner = Math.floor(Math.random() * pickList.length)
-  return `#${winner} (${pickList[winner]}) wins!`
+  return `#${winner + 1} (${pickList[winner]}) wins!`
 }
 
 const validateName = (value: string) => {
@@ -229,22 +228,25 @@ const sortEntries = () => {
   state.entries.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-watch(() => [state.entries], () => {
-  localStorage.setItem("raffleEntries", JSON.stringify(state.entries))
-
-  const entryRanges: string[] = []
+const entryRanges = computed(() => {
+  const ranges: string[] = []
   let startVal = 0
   let endVal = 0
   state.entries.forEach(entry => {
     endVal = startVal + entry.entries
     if (startVal + 1 === endVal) {
-      entryRanges.push(`${endVal}`)
+      ranges.push(`${endVal}`)
     } else {
-      entryRanges.push(`${startVal + 1}-${endVal}`)
+      ranges.push(`${startVal + 1}-${endVal}`)
     }
     startVal = endVal
   })
-  state.entryRanges = entryRanges
+  return ranges
+})
+
+watch(() => [state.entries], () => {
+  localStorage.setItem("raffleEntries", JSON.stringify(state.entries))
+
 }, {deep: true})
 
 </script>
