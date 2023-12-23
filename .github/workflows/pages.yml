@@ -37,9 +37,9 @@ jobs:
       - name: Enable corepack
         run: |
           corepack enable
-          yarn set version 4.2.0
+          yarn set version 4.0.2
           yarn install
-          yarn page
+          yarn pages
       - name: Setup Pages
         uses: actions/configure-pages@v1
       - name: Upload artifact
