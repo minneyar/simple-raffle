@@ -32,7 +32,7 @@
           <template #default="{ isActive }">
             <v-card>
               <v-card-title>Winner</v-card-title>
-              <v-card-text>{{ pickWinner() }} wins!</v-card-text>
+              <v-card-text>{{ pickWinner() }}</v-card-text>
               <v-card-actions>
                 <v-spacer/>
                 <v-btn
@@ -126,9 +126,9 @@
                 label="Name"
                 v-model="entry.name"
                 class="pr-1 flex-grow-1"
-                :hide-details="true"
                 density="compact"
                 :rules="[validateName]"
+                :persistent-hint="true"
               />
               <v-text-field
                 label="# Entries"
@@ -136,9 +136,10 @@
                 class="pr-2"
                 style="flex-grow: 0.25"
                 @update:model-value="updateEntries(index, $event)"
-                :hide-details="true"
                 density="compact"
                 :rules="[validateEntryCount]"
+                :persistent-hint="true"
+                :hint="(state.entryRanges.length > index) ? state.entryRanges[index]: ''"
               />
               <v-btn
                 icon="mdi-plus"
@@ -181,6 +182,7 @@ const state = reactive({
   entries: savedEntries,
   deleteDialog: false,
   newName: '',
+  entryRanges: [] as string[],
 })
 
 const addEntry = () => {
@@ -205,7 +207,7 @@ const pickWinner = () => {
   console.info(`Picking from: ${pickList}`)
 
   const winner = Math.floor(Math.random() * pickList.length)
-  return pickList[winner]
+  return `#${winner} (${pickList[winner]}) wins!`
 }
 
 const validateName = (value: string) => {
@@ -229,6 +231,20 @@ const sortEntries = () => {
 
 watch(() => [state.entries], () => {
   localStorage.setItem("raffleEntries", JSON.stringify(state.entries))
+
+  const entryRanges: string[] = []
+  let startVal = 0
+  let endVal = 0
+  state.entries.forEach(entry => {
+    endVal = startVal + entry.entries
+    if (startVal + 1 === endVal) {
+      entryRanges.push(`${endVal}`)
+    } else {
+      entryRanges.push(`${startVal + 1}-${endVal}`)
+    }
+    startVal = endVal
+  })
+  state.entryRanges = entryRanges
 }, {deep: true})
 
 </script>
@@ -237,6 +253,6 @@ watch(() => [state.entries], () => {
 .entry-row {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
 }
 </style>

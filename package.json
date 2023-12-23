@@ -1,6 +1,6 @@
 {
   "name": "simple-raffle",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mdi/font": "7.0.96",
+    "csv": "^6.3.6",
     "roboto-fontface": "*",
     "vue": "^3.2.0",
     "vuetify": "^3.0.0"
