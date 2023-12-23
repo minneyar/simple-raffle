@@ -7,13 +7,81 @@
         color="primary"
         density="compact"
       >
-        <template v-slot:prepend>
-          <v-app-bar-nav-icon/>
-        </template>
-        <v-app-bar-title>Simple Raffle</v-app-bar-title>
+        <v-app-bar-title>Raffle</v-app-bar-title>
+
+        <v-spacer/>
+
+        <v-btn
+          prepend-icon="mdi-sort-alphabetical-ascending"
+          @click="sortEntries"
+        >
+          Sort
+        </v-btn>
+
+        <v-dialog>
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              class="mr-3"
+              prepend-icon="mdi-party-popper"
+            >
+              Pick Winner
+            </v-btn>
+          </template>
+          <template #default="{ isActive }">
+            <v-card>
+              <v-card-title>Winner</v-card-title>
+              <v-card-text>{{ pickWinner() }} wins!</v-card-text>
+              <v-card-actions>
+                <v-spacer/>
+                <v-btn
+                  color="primary"
+                  @click="isActive.value = false"
+                >
+                  Yay!
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </template>
+        </v-dialog>
+
+        <v-dialog>
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              prepend-icon="mdi-plus"
+            >
+              Add Entry
+            </v-btn>
+          </template>
+          <template #default="{ isActive }">
+            <v-form @submit.prevent>
+              <v-card>
+                <v-card-title>Add Name</v-card-title>
+                <v-card-text>
+                  <v-text-field
+                    :autofocus="true"
+                    label="Name"
+                    v-model="state.newName"
+                  />
+                </v-card-text>
+                <v-card-actions>
+                  <v-spacer/>
+                  <v-btn
+                    color="primary"
+                    type="submit"
+                    @click="addEntry(); isActive.value = false"
+                  >
+                    Add Entry
+                  </v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-form>
+          </template>
+        </v-dialog>
       </v-app-bar>
-      <v-main>
-        <v-container fluid class="pt-6">
+      <v-main class="fill-height">
+        <v-container fluid class="pl-2 pr-2 pt-6">
           <v-row
             v-for="(entry, index) of state.entries"
             :key="index"
@@ -58,6 +126,7 @@
                 class="pr-3 flex-grow-1"
                 :hide-details="true"
                 density="compact"
+                :rules="[validateName]"
               />
               <v-text-field
                 label="# Entries"
@@ -67,54 +136,27 @@
                 @update:model-value="updateEntries(index, $event)"
                 :hide-details="true"
                 density="compact"
+                :rules="[validateEntryCount]"
               />
               <v-btn
                 icon="mdi-plus"
                 class="mr-3"
                 color="primary"
                 @click="state.entries[index].entries += 1"
+                size="small"
               />
               <v-btn
                 icon="mdi-minus"
                 color="primary"
                 @click="state.entries[index].entries -= 1"
+                size="small"
               />
             </v-col>
           </v-row>
         </v-container>
       </v-main>
     </v-layout>
-    <v-sheet
-      class="button-container">
-      <v-dialog>
-        <template #activator="{ props }">
-          <v-btn
-            v-bind="props"
-            color="primary mr-3"
-          >Pick Winner
-          </v-btn>
-        </template>
-        <template #default="{ isActive }">
-          <v-card>
-            <v-card-title>Winner</v-card-title>
-            <v-card-text>{{ pickWinner() }} wins!</v-card-text>
-            <v-card-actions>
-              <v-spacer/>
-              <v-btn
-                color="primary"
-                @click="isActive.value = false"
-              >Yay!
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </template>
-      </v-dialog>
-      <v-btn
-        icon="mdi-plus"
-        color="primary"
-        @click="addEntry"
-      />
-    </v-sheet>
+
   </v-card>
 </template>
 
@@ -136,10 +178,12 @@ if (savedEntriesStr) {
 const state = reactive({
   entries: savedEntries,
   deleteDialog: false,
+  newName: '',
 })
 
 const addEntry = () => {
-  state.entries.push({name: "Name", entries: 5})
+  state.entries.push({name: state.newName, entries: 1})
+  state.newName = ''
 }
 
 const updateEntries = (index: number, entries: string) => {
@@ -160,6 +204,25 @@ const pickWinner = () => {
 
   const winner = Math.floor(Math.random() * pickList.length)
   return pickList[winner]
+}
+
+const validateName = (value: string) => {
+  if (value.length === 0) {
+    return 'May not be blank.'
+  }
+  return true
+}
+
+const validateEntryCount = (value: string) => {
+  const val = parseInt(value)
+  if (isNaN(val) || val < 1) {
+    return 'Must be positive.'
+  }
+  return true
+}
+
+const sortEntries = () => {
+  state.entries.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 watch(() => [state.entries], () => {
