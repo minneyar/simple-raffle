@@ -38,12 +38,8 @@ jobs:
         run: |
           corepack enable
           yarn set version 4.2.0
-      - uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: install # will run `yarn install` command
-      - uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: pages # will run `yarn build` command
+          yarn install
+          yarn page
       - name: Setup Pages
         uses: actions/configure-pages@v1
       - name: Upload artifact

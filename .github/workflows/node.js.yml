@@ -22,12 +22,8 @@ jobs:
         run: |
           corepack enable
           yarn set version 4.2.0
-      - uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: install # will run `yarn install` command
-      - uses: borales/actions-yarn@v4.2.0
-        with:
-          cmd: build # will run `yarn build` command
+          yarn install
+          yarn build
 #    - uses: borales/actions-yarn@v3.0.0
 #      with:
 #        cmd: test # will run `yarn test` command
