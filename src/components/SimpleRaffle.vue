@@ -14,6 +14,7 @@
         <v-btn
           prepend-icon="mdi-sort-alphabetical-ascending"
           @click="sortEntries"
+          size="small"
         >
           Sort
         </v-btn>
@@ -22,10 +23,10 @@
           <template #activator="{ props }">
             <v-btn
               v-bind="props"
-              class="mr-3"
               prepend-icon="mdi-party-popper"
+              size="small"
             >
-              Pick Winner
+              Winner
             </v-btn>
           </template>
           <template #default="{ isActive }">
@@ -50,8 +51,9 @@
             <v-btn
               v-bind="props"
               prepend-icon="mdi-plus"
+              size="small"
             >
-              Add Entry
+              Add
             </v-btn>
           </template>
           <template #default="{ isActive }">
@@ -95,7 +97,7 @@
                     v-bind="props"
                     icon="mdi-delete"
                     size="small"
-                    class="mr-3"
+                    class="mr-2"
                     color="error"
                   />
                 </template>
@@ -123,7 +125,7 @@
               <v-text-field
                 label="Name"
                 v-model="entry.name"
-                class="pr-3 flex-grow-1"
+                class="pr-1 flex-grow-1"
                 :hide-details="true"
                 density="compact"
                 :rules="[validateName]"
@@ -131,7 +133,7 @@
               <v-text-field
                 label="# Entries"
                 :model-value="entry.entries.toFixed(0)"
-                class="pr-3"
+                class="pr-2"
                 style="flex-grow: 0.25"
                 @update:model-value="updateEntries(index, $event)"
                 :hide-details="true"
@@ -140,7 +142,7 @@
               />
               <v-btn
                 icon="mdi-plus"
-                class="mr-3"
+                class="mr-2"
                 color="primary"
                 @click="state.entries[index].entries += 1"
                 size="small"
@@ -235,14 +237,6 @@ watch(() => [state.entries], () => {
 .entry-row {
   display: flex;
   flex-direction: row;
-  align-items: center;
-}
-
-.button-container {
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-  display: flex;
   align-items: center;
 }
 </style>
