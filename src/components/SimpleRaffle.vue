@@ -94,7 +94,7 @@
                   <v-btn
                     color="primary"
                     type="submit"
-                    @click="addEntry(); isActive.value = false"
+                    @click="createEntry(); isActive.value = false"
                   >
                     Add Entry
                   </v-btn>
@@ -105,11 +105,13 @@
         </v-dialog>
       </v-app-bar>
 
+      <!--suppress HtmlUnknownBooleanAttribute -->
       <v-navigation-drawer
         v-model="state.drawer"
         location="left"
         temporary
       >
+        <!--suppress HtmlUnknownBooleanAttribute -->
         <v-list nav>
           <v-list-item
             prepend-icon="mdi-upload"
@@ -123,6 +125,37 @@
             value="export"
             @click="exportCsv"
           />
+          <v-dialog>
+            <template #activator="{props}">
+              <v-list-item
+                v-bind="props"
+                prepend-icon="mdi-delete"
+                title="Remove All"
+                value="remove-all"
+              />
+            </template>
+            <template #default="{isActive}">
+              <v-card>
+                <v-card-title>Remove All</v-card-title>
+                <v-card-text>Remove all entries?</v-card-text>
+                <v-card-actions>
+                  <v-spacer/>
+                  <v-btn
+                    color="secondary"
+                    @click="isActive.value = false"
+                  >
+                    Cancel
+                  </v-btn>
+                  <v-btn
+                    color="primary"
+                    @click="state.entries = []; isActive.value = false"
+                  >
+                    Remove All
+                  </v-btn>
+                </v-card-actions>
+              </v-card>
+            </template>
+          </v-dialog>
         </v-list>
         <v-form
           ref="csvImportForm"
@@ -143,6 +176,7 @@
       </v-navigation-drawer>
 
       <v-main class="fill-height">
+        <!--suppress HtmlUnknownBooleanAttribute -->
         <v-container fluid class="pl-2 pr-2 pt-6">
           <v-row
             v-for="(entry, index) of state.entries"
@@ -154,8 +188,8 @@
               <RaffleEntryRow
                 :entry="entry"
                 :range-hint="(entryRanges.length > index) ? entryRanges[index]: ''"
-                @add-entry="state.entries[index].entries += 1"
-                @subtract-entry="state.entries[index].entries -= 1"
+                @add-entry="addEntry(index)"
+                @subtract-entry="subtractEntry(index)"
                 @delete="state.entries.splice(index, 1)"
                 @set-entries="updateEntries(index, $event)"
               />
@@ -169,8 +203,7 @@
 </template>
 
 <script setup lang="ts">
-
-import {computed, reactive, ref, watch} from "vue";
+import {computed, reactive, watch} from "vue";
 import RaffleEntry from "@/types/RaffleEntry";
 import RaffleEntryRow from "@/components/RaffleEntryRow.vue";
 import {SubmitEventPromise} from "vuetify";
@@ -190,16 +223,14 @@ const state = reactive({
   newName: '',
 })
 
-const csvImportForm = ref<VForm>()
-
-const addEntry = () => {
+const createEntry = async () => {
   state.entries.push({name: state.newName, entries: 1})
   state.newName = ''
 }
 
-const updateEntries = (index: number, entries: string) => {
+const updateEntries = async (index: number, entries: string) => {
   const newVal = parseInt(entries)
-  if (!isNaN(newVal) && newVal > 0) {
+  if (!isNaN(newVal) && newVal > 0 && state.entries.length > index) {
     state.entries[index].entries = newVal
   }
 }
@@ -211,13 +242,13 @@ const pickWinner = () => {
       pickList.push(entry.name)
     }
   })
-  console.info(`Picking from: ${pickList}`)
+  // console.info(`Picking from: ${pickList}`)
 
   const winner = Math.floor(Math.random() * pickList.length)
   return `#${winner + 1} (${pickList[winner]}) wins!`
 }
 
-const sortEntries = () => {
+const sortEntries = async () => {
   state.entries.sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -237,16 +268,28 @@ const entryRanges = computed(() => {
   return ranges
 })
 
-const selectFile = () => {
+const addEntry = async (index: number) => {
+  if (state.entries.length > index) {
+    state.entries[index].entries += 1
+  }
+}
+
+const subtractEntry = async (index: number) => {
+  if (state.entries.length > index && state.entries[index].entries > 1) {
+    state.entries[index].entries -= 1
+  }
+}
+
+const selectFile = async () => {
   console.info('Clicking button')
   document.getElementById('csv-upload')?.click()
 }
 
-const submitForm = () => {
+const submitForm = async () => {
   document.getElementById('submit-button')?.click()
 }
 
-const handleSubmit = (e: SubmitEventPromise) => {
+const handleSubmit = async (e: SubmitEventPromise) => {
   console.info(`handleSubmit: ${e}`)
   const el = document.getElementById('csv-upload')
   if (el instanceof HTMLInputElement) {
@@ -284,7 +327,7 @@ const exportCsv = async () => {
   document.body.removeChild(el)
 }
 
-watch(() => [state.entries], () => {
+watch(() => [state.entries], async () => {
   localStorage.setItem("raffleEntries", JSON.stringify(state.entries))
 }, {deep: true})
 

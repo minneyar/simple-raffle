@@ -40,7 +40,7 @@
   />
   <v-text-field
     label="# Entries"
-    :model-value="entry.entries.toFixed(0)"
+    :model-value="entriesValue"
     class="pr-2"
     style="flex-grow: 0.25"
     @update:model-value="emit('set-entries', $event)"
@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import RaffleEntry from "@/types/RaffleEntry";
+import {computed} from "vue";
 
 const props = defineProps<{
   entry: RaffleEntry
@@ -78,6 +79,10 @@ const emit = defineEmits<{
   (e: 'delete'): void,
   (e: 'set-entries', v: string): void,
 }>()
+
+const entriesValue = computed(() => {
+  return props.entry.entries.toFixed(0)
+})
 
 const validateName = (value: string) => {
   if (!value || value.length === 0) {
