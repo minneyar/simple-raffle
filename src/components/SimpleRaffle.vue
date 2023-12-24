@@ -2,11 +2,15 @@
   <v-card
     class="mx-auto fill-height"
   >
-    <v-layout>
+    <v-layout class="fill-height">
       <v-app-bar
         color="primary"
         density="compact"
       >
+        <template v-slot:prepend>
+          <v-app-bar-nav-icon @click.stop="state.drawer = !state.drawer"/>
+        </template>
+
         <v-app-bar-title>Raffle</v-app-bar-title>
 
         <v-spacer/>
@@ -15,9 +19,15 @@
           prepend-icon="mdi-sort-alphabetical-ascending"
           @click="sortEntries"
           size="small"
+          class="d-none d-sm-flex"
         >
           Sort
         </v-btn>
+        <v-btn
+          icon="mdi-sort-alphabetical-ascending"
+          @click="sortEntries"
+          class="d-flex d-sm-none"
+        />
 
         <v-dialog>
           <template #activator="{ props }">
@@ -25,9 +35,15 @@
               v-bind="props"
               prepend-icon="mdi-party-popper"
               size="small"
+              class="d-none d-sm-flex"
             >
               Winner
             </v-btn>
+            <v-btn
+              v-bind="props"
+              icon="mdi-party-popper"
+              class="d-flex d-sm-none"
+            />
           </template>
           <template #default="{ isActive }">
             <v-card>
@@ -52,9 +68,15 @@
               v-bind="props"
               prepend-icon="mdi-plus"
               size="small"
+              class="d-none d-sm-flex"
             >
               Add
             </v-btn>
+            <v-btn
+              v-bind="props"
+              icon="mdi-plus"
+              class="d-flex d-sm-none"
+            />
           </template>
           <template #default="{ isActive }">
             <v-form @submit.prevent>
@@ -82,6 +104,44 @@
           </template>
         </v-dialog>
       </v-app-bar>
+
+      <v-navigation-drawer
+        v-model="state.drawer"
+        location="left"
+        temporary
+      >
+        <v-list nav>
+          <v-list-item
+            prepend-icon="mdi-upload"
+            title="Import from CSV"
+            value="import"
+            @click="selectFile"
+          />
+          <v-list-item
+            prepend-icon="mdi-download"
+            title="Export to CSV"
+            value="export"
+            @click="exportCsv"
+          />
+        </v-list>
+        <v-form
+          ref="csvImportForm"
+          @submit.prevent="handleSubmit"
+        >
+          <input
+            id="csv-upload"
+            type="file"
+            hidden
+            @change="submitForm"
+          />
+          <input
+            id="submit-button"
+            type="submit"
+            hidden
+          >
+        </v-form>
+      </v-navigation-drawer>
+
       <v-main class="fill-height">
         <v-container fluid class="pl-2 pr-2 pt-6">
           <v-row
@@ -91,68 +151,13 @@
             <v-col
               class="entry-row pt-0 pb-3"
             >
-              <v-dialog>
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    icon="mdi-delete"
-                    size="small"
-                    class="mr-2"
-                    color="error"
-                  />
-                </template>
-                <template #default="{ isActive }">
-                  <v-card title="Remove Entry?">
-                    <v-card-text>
-                      Remove {{ entry.name }}?
-                    </v-card-text>
-                    <v-card-actions>
-                      <v-spacer/>
-                      <v-btn
-                        text="Cancel"
-                        color="secondary"
-                        @click="isActive.value = false"
-                      />
-                      <v-btn
-                        text="Remove"
-                        color="primary"
-                        @click="state.entries.splice(index, 1); isActive.value = false"
-                      />
-                    </v-card-actions>
-                  </v-card>
-                </template>
-              </v-dialog>
-              <v-text-field
-                label="Name"
-                v-model="entry.name"
-                class="pr-1 flex-grow-1"
-                density="compact"
-                :rules="[validateName]"
-                :persistent-hint="true"
-              />
-              <v-text-field
-                label="# Entries"
-                :model-value="entry.entries.toFixed(0)"
-                class="pr-2"
-                style="flex-grow: 0.25"
-                @update:model-value="updateEntries(index, $event)"
-                density="compact"
-                :rules="[validateEntryCount]"
-                :persistent-hint="true"
-                :hint="(entryRanges.length > index) ? entryRanges[index]: ''"
-              />
-              <v-btn
-                icon="mdi-plus"
-                class="mr-2"
-                color="primary"
-                @click="state.entries[index].entries += 1"
-                size="small"
-              />
-              <v-btn
-                icon="mdi-minus"
-                color="primary"
-                @click="state.entries[index].entries -= 1"
-                size="small"
+              <RaffleEntryRow
+                :entry="entry"
+                :range-hint="(entryRanges.length > index) ? entryRanges[index]: ''"
+                @add-entry="state.entries[index].entries += 1"
+                @subtract-entry="state.entries[index].entries -= 1"
+                @delete="state.entries.splice(index, 1)"
+                @set-entries="updateEntries(index, $event)"
               />
             </v-col>
           </v-row>
@@ -165,12 +170,12 @@
 
 <script setup lang="ts">
 
-import {computed, reactive, watch} from "vue";
-
-interface RaffleEntry {
-  name: string
-  entries: number
-}
+import {computed, reactive, ref, watch} from "vue";
+import RaffleEntry from "@/types/RaffleEntry";
+import RaffleEntryRow from "@/components/RaffleEntryRow.vue";
+import {SubmitEventPromise} from "vuetify";
+import {VForm} from "vuetify/components/VForm";
+import Papa from 'papaparse'
 
 const savedEntriesStr = localStorage.getItem("raffleEntries")
 let savedEntries: RaffleEntry[] = []
@@ -181,8 +186,11 @@ if (savedEntriesStr) {
 const state = reactive({
   entries: savedEntries,
   deleteDialog: false,
+  drawer: false,
   newName: '',
 })
+
+const csvImportForm = ref<VForm>()
 
 const addEntry = () => {
   state.entries.push({name: state.newName, entries: 1})
@@ -209,21 +217,6 @@ const pickWinner = () => {
   return `#${winner + 1} (${pickList[winner]}) wins!`
 }
 
-const validateName = (value: string) => {
-  if (value.length === 0) {
-    return 'May not be blank.'
-  }
-  return true
-}
-
-const validateEntryCount = (value: string) => {
-  const val = parseInt(value)
-  if (isNaN(val) || val < 1) {
-    return 'Must be positive.'
-  }
-  return true
-}
-
 const sortEntries = () => {
   state.entries.sort((a, b) => a.name.localeCompare(b.name))
 }
@@ -244,9 +237,55 @@ const entryRanges = computed(() => {
   return ranges
 })
 
+const selectFile = () => {
+  console.info('Clicking button')
+  document.getElementById('csv-upload')?.click()
+}
+
+const submitForm = () => {
+  document.getElementById('submit-button')?.click()
+}
+
+const handleSubmit = (e: SubmitEventPromise) => {
+  console.info(`handleSubmit: ${e}`)
+  const el = document.getElementById('csv-upload')
+  if (el instanceof HTMLInputElement) {
+    if (el.files && el.files.length > 0) {
+      const file = el.files.item(0)
+      if (file) {
+        Papa.parse<RaffleEntry>(file, {
+          header: true,
+          transform(value, field) {
+            if (field === 'entries') {
+              return parseInt(value)
+            }
+            return value
+          },
+          complete(results, _file) {
+            if (results.errors.length === 0) {
+              state.entries = results.data
+            }
+          },
+        })
+      }
+    }
+  }
+}
+
+const exportCsv = async () => {
+  const data = Papa.unparse(state.entries, {header: true})
+
+  const el = document.createElement('a')
+  el.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(data)}`)
+  el.setAttribute('download', 'raffle.csv')
+  el.style.display = 'none'
+  document.body.appendChild(el)
+  el.click()
+  document.body.removeChild(el)
+}
+
 watch(() => [state.entries], () => {
   localStorage.setItem("raffleEntries", JSON.stringify(state.entries))
-
 }, {deep: true})
 
 </script>
