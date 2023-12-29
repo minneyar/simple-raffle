@@ -186,12 +186,10 @@
               class="entry-row pt-0 pb-3"
             >
               <RaffleEntryRow
-                :entry="entry"
+                :model-value="entry"
                 :range-hint="(entryRanges.length > index) ? entryRanges[index]: ''"
-                @add-entry="addEntry(index)"
-                @subtract-entry="subtractEntry(index)"
                 @delete="state.entries.splice(index, 1)"
-                @set-entries="updateEntries(index, $event)"
+                @update:model-value="state.entries[index] = $event"
               />
             </v-col>
           </v-row>
@@ -214,6 +212,17 @@ const savedEntriesStr = localStorage.getItem("raffleEntries")
 let savedEntries: RaffleEntry[] = []
 if (savedEntriesStr) {
   savedEntries = JSON.parse(savedEntriesStr)
+  for (const entry of savedEntries) {
+    // noinspection SuspiciousTypeOfGuard
+    if (typeof (entry.entries) !== 'number') {
+      // This could be undefined if the user somehow broke their locally stored data
+      entry.entries = 1
+    }
+    if (!entry.contact) {
+      // May be undefined for data created with older versions
+      entry.contact = ''
+    }
+  }
 }
 
 const state = reactive({
@@ -224,15 +233,8 @@ const state = reactive({
 })
 
 const createEntry = async () => {
-  state.entries.push({name: state.newName, entries: 1})
+  state.entries.push({name: state.newName, entries: 1, contact: ''})
   state.newName = ''
-}
-
-const updateEntries = async (index: number, entries: string) => {
-  const newVal = parseInt(entries)
-  if (!isNaN(newVal) && newVal > 0 && state.entries.length > index) {
-    state.entries[index].entries = newVal
-  }
 }
 
 const pickWinner = () => {
@@ -268,18 +270,6 @@ const entryRanges = computed(() => {
   return ranges
 })
 
-const addEntry = async (index: number) => {
-  if (state.entries.length > index) {
-    state.entries[index].entries += 1
-  }
-}
-
-const subtractEntry = async (index: number) => {
-  if (state.entries.length > index && state.entries[index].entries > 1) {
-    state.entries[index].entries -= 1
-  }
-}
-
 const selectFile = async () => {
   console.info('Clicking button')
   document.getElementById('csv-upload')?.click()
@@ -301,6 +291,9 @@ const handleSubmit = async (e: SubmitEventPromise) => {
           transform(value, field) {
             if (field === 'entries') {
               return parseInt(value)
+            }
+            if (field === 'contact' && !value) {
+              return ''
             }
             return value
           },

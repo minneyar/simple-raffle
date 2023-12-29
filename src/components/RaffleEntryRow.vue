@@ -1,38 +1,12 @@
 <template>
-  <v-dialog>
-    <template #activator="{ props }">
-      <v-btn
-        v-bind="props"
-        icon="mdi-delete"
-        size="small"
-        class="mr-2"
-        color="error"
-      />
-    </template>
-    <template #default="{ isActive }">
-      <v-card title="Remove Entry?">
-        <v-card-text>
-          Remove {{ entry.name }}?
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer/>
-          <v-btn
-            text="Cancel"
-            color="secondary"
-            @click="isActive.value = false"
-          />
-          <v-btn
-            text="Remove"
-            color="primary"
-            @click="emit('delete'); isActive.value = false"
-          />
-        </v-card-actions>
-      </v-card>
-    </template>
-  </v-dialog>
+  <EntryProperties
+    :model-value="state.entry"
+    @update:model-value="emit('update:model-value', $event)"
+    @delete="emit('delete')"
+  />
   <v-text-field
     label="Name"
-    v-model="entry.name"
+    v-model="state.entry.name"
     class="pr-1 flex-grow-1"
     density="compact"
     :rules="[validateName]"
@@ -43,7 +17,7 @@
     :model-value="entriesValue"
     class="pr-2"
     style="flex-grow: 0.25"
-    @update:model-value="emit('set-entries', $event)"
+    @update:model-value="setEntries($event)"
     density="compact"
     :rules="[validateEntryCount]"
     :persistent-hint="true"
@@ -53,35 +27,54 @@
     icon="mdi-plus"
     class="mr-2"
     color="primary"
-    @click="emit('add-entry')"
+    @click="setEntries(state.entry.entries + 1)"
     size="small"
   />
   <v-btn
     icon="mdi-minus"
     color="primary"
-    @click="emit('subtract-entry')"
+    @click="setEntries(state.entry.entries - 1)"
     size="small"
   />
 </template>
 
 <script setup lang="ts">
 import RaffleEntry from "@/types/RaffleEntry";
-import {computed} from "vue";
+import {computed, onMounted, reactive, watch} from "vue";
+import EntryProperties from "@/components/EntryProperties.vue";
 
 const props = defineProps<{
-  entry: RaffleEntry
+  modelValue: RaffleEntry
   rangeHint: string
 }>()
 
+const state = reactive({
+  entry: {name: '', entries: 0} as RaffleEntry
+})
+
 const emit = defineEmits<{
-  (e: 'add-entry'): void,
-  (e: 'subtract-entry'): void,
   (e: 'delete'): void,
-  (e: 'set-entries', v: string): void,
+  (e: 'update:model-value', v: RaffleEntry): void,
 }>()
 
 const entriesValue = computed(() => {
-  return props.entry.entries.toFixed(0)
+  return state.entry.entries.toFixed(0)
+})
+
+watch(() => props.modelValue, () => {
+  state.entry = {
+    name: props.modelValue.name,
+    entries: props.modelValue.entries,
+    contact: props.modelValue.contact,
+  }
+})
+
+onMounted(() => {
+  state.entry = {
+    name: props.modelValue.name,
+    entries: props.modelValue.entries,
+    contact: props.modelValue.contact,
+  }
 })
 
 const validateName = (value: string) => {
@@ -99,6 +92,18 @@ const validateEntryCount = (value: string) => {
   return true
 }
 
+const setEntries = (value: string | number) => {
+  let val: number
+  if (typeof (value) === 'number') {
+    val = value
+  } else {
+    val = parseInt(value)
+  }
+  if (!isNaN(val)) {
+    state.entry.entries = val
+    emit('update:model-value', state.entry)
+  }
+}
 
 </script>
 
